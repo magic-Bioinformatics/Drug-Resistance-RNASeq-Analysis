@@ -1,0 +1,157 @@
+---
+title: "Cisplatin Resistance Analysis"
+output:
+  html_document: default
+  pdf_document: default
+date: "2025-11-22"
+---
+---
+title: "Molecular Mechanism of Cisplatin Resistance"
+subtitle: "RNA-Seq Analysis of Human Lung Cancer Cells"
+author: "Bioinformatics Analyst"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(DESeq2)
+library(clusterProfiler)
+library(enrichplot)
+library(DT)
+library(ggplot2)
+
+
+load("my_project_data.RData")
+```
+## 1. Executive Summary
+
+In this project, we analyzed the transcriptomic landscape of **Cisplatin-Resistant** vs. **Sensitive** lung cancer cells (A549 cell line). The goal was to identify key molecular mechanisms driving drug resistance.
+
+**Key Findings:**
+1.  **Oxidative Stress Response** is significantly upregulated in resistant cells.
+2.  **Metabolic Reprogramming** (Glucose transport) is activated to support cell survival.
+3.  **Cell Adhesion** pathways are altered, suggesting potential metastatic features.
+
+---
+
+## 2. Differential Expression Analysis
+
+We compared gene expression profiles to identify Up-regulated (Resistance drivers) and Down-regulated genes.
+
+### Volcano Plot Visualization
+The plot below illustrates the global distribution of differentially expressed genes. Red points indicate genes with significant upregulation in resistant cells (Log2FC > 1, P-adj < 0.05).
+
+```{r volcano_plot, fig.width=10, fig.height=6}
+
+res_df$diffexpressed <- "NO"
+res_df$diffexpressed[res_df$log2FoldChange > 1 & res_df$padj < 0.05] <- "UP (Resistant)"
+res_df$diffexpressed[res_df$log2FoldChange < -1 & res_df$padj < 0.05] <- "DOWN (Sensitive)"
+
+ggplot(res_df, aes(x=log2FoldChange, y=-log10(padj), col=diffexpressed)) +
+  geom_point(alpha=0.6) +
+  theme_minimal() +
+  scale_color_manual(values=c("blue", "grey", "red")) +
+  geom_vline(xintercept=c(-1, 1), col="black", linetype="dashed") +
+  geom_hline(yintercept=-log10(0.05), col="black", linetype="dashed") +
+  labs(title="Volcano Plot: Resistance Drivers",
+       x="Log2 Fold Change", y="-Log10 Adjusted P-value")
+```
+
+---
+
+## 3. Pathway Enrichment Analysis (GSEA)
+
+To understand the biological function of these genes, we performed Gene Set Enrichment Analysis (GSEA).
+
+### Mechanism of Resistance
+The Dotplot below reveals the top activated and suppressed biological pathways.
+
+```{r gsea_plot, fig.width=12, fig.height=8}
+dotplot(gse, showCategory=12, split=".sign", label_format = 50) + 
+  facet_grid(.~.sign) +
+  theme_light() +
+  theme(
+    axis.text.y = element_text(size = 9, color="black"),
+    plot.title = element_text(size = 14, face="bold", hjust=0.5),
+    strip.text = element_text(size = 12, face="bold")
+  ) +
+  labs(title = "Functional Pathways in Drug Resistance",
+       x = "Gene Ratio", y = NULL)
+```
+
+**Interpretation:**
+The analysis confirms that **Response to Oxidative Stress** and **Glucose Import** are the primary mechanisms utilized by cancer cells to survive Cisplatin treatment.
+---
+
+## 5. Protein-Protein Interaction (PPI) Network
+
+To identify "Hub Genes" and potential drug targets, we analyzed the protein interaction network using the **STRING database**. This analysis reveals functional clusters and master regulators of the resistance mechanism.
+
+### Network Visualization
+The graph below shows the interaction between the top 50 upregulated genes.
+*(Nodes with more connections are considered Hub Genes)*.
+
+```{r ppi_network, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, fig.width=10, fig.height=10}
+Sys.setenv(CURL_CA_BUNDLE="")
+options(download.file.method = "libcurl")
+options(timeout = 600)
+
+library(STRINGdb)
+library(igraph)
+library(tidyverse)
+
+top_genes <- as.data.frame(res_df) %>%
+  filter(log2FoldChange > 0.5, padj < 0.05) %>%
+  arrange(desc(log2FoldChange)) %>%
+  head(50)
+
+top_genes$gene <- rownames(top_genes)
+
+tryCatch({
+  string_db <- STRINGdb$new(version="11.5", species=9606, 
+                            score_threshold=400, input_directory="")
+  
+  mapped_genes <- string_db$map(top_genes, "gene", removeUnmappedRows = TRUE)
+  
+  string_db$plot_network(mapped_genes$STRING_id, 
+                         payload_id = mapped_genes$STRING_id)
+  
+}, error = function(e) {
+  print("⚠️ Note: Could not connect to STRING server during report generation. Please refer to the PDF file in the 'plots' folder.")
+})
+```
+
+**Key Findings:**
+The network analysis highlights highly connected proteins (Hub Genes) such as **Metallothioneins** and **FOXO1**, suggesting them as central drivers of cisplatin resistance.
+
+---
+---
+
+## 4. Data Availability (Interactive Table)
+
+The table below shows the top significant genes. You can search and filter this table.
+
+```{r interactive_table}
+top_genes_table <- res_df %>% 
+  select(log2FoldChange, pvalue, padj) %>% 
+  arrange(padj) %>% 
+  head(100)
+
+datatable(top_genes_table, 
+          caption = 'Table 1: Top 100 Differentially Expressed Genes',
+          options = list(pageLength = 5, scrollX = TRUE))
+```
+
+```{r save_file, include=FALSE}
+
+write.csv(res_df, "Final_Gene_List_Report.csv")
+```
+
+---
+*Report generated by R Markdown - Bioinformatic Portfolio*
