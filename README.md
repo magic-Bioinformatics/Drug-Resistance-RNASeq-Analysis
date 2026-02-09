@@ -20,10 +20,3 @@ The analysis pipeline consists of both **Python** and **R** workflows, integrate
 └── README.md           # Project documentation
 
 
----
-
-## 👩‍💻 Author
-
-**Maryam Najafi** *Undergraduate Researcher | Bioinformatics & Molecular Genetics* This project was conducted as an independent research initiative to bridge Wet-Lab knowledge with Computational Biology applications.
-
-📧 mariyamrnj8444@gmail.com  
