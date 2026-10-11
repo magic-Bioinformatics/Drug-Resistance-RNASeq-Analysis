@@ -1,4 +1,4 @@
-# Transcriptomic Analysis of Cisplatin Resistance in Lung Cancer 🧬## 📌 Project Overview
+# Transcriptomic Analysis of Cisplatin Resistance in Lung Cancer 🧬 📌 Project Overview
 This repository contains the bioinformatics pipeline and analysis scripts for investigating the **molecular mechanisms of Cisplatin resistance** in Non-Small Cell Lung Cancer (NSCLC). 
 
 Using RNA-Seq data from **A549 cell lines** (Parental vs. Cisplatin-Resistant), this study aims to identify key differentially expressed genes (DEGs) and reconstruct Protein-Protein Interaction (PPI) networks to uncover potential biomarkers for drug resistance.
